@@ -22,3 +22,5 @@
 /ExcelToJsonParser.Legacy/bin/Release
 /ExcelToJsonParser.Legacy/obj/Release
 /.vs/Rochas.ExcelToJsonParser/v16
+/.vs/Rochas.ExcelToJsonParser/v17
+/ExcelToJsonParser.Console/bin/Release/net6.0
