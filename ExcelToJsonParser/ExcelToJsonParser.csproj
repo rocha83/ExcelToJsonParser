@@ -7,14 +7,14 @@
     <Company />
     <Product>Rochas.ExcelToJsonParser</Product>
     <PackageProjectUrl>https://github.com/rocha83/ExcelToJsonParser</PackageProjectUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/rocha83br/ExcelToJsonParser/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>Git</RepositoryType>
     <RepositoryUrl>https://github.com/rocha83/ExcelToJsonParser</RepositoryUrl>
     <PackageTags>excel xlsx xls xlsb csv json c# class object</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>A simple excel-to-json document converter</Description>
-    <PackageIconUrl>https://raw.githubusercontent.com/rocha83br/ExcelToJsonParser/master/json-file.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/json-file.png</PackageIconUrl>
     <Version>1.0.6.3</Version>
     <PackageId>ExcelToJsonParser</PackageId>
     <AssemblyName>Rochas.ExcelToJsonParser</AssemblyName>
