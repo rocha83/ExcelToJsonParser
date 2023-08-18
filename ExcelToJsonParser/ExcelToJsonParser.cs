@@ -85,6 +85,13 @@ namespace Rochas.ExcelToJson
             return JsonConvert.DeserializeObject<IEnumerable<object>>(strJson);
         }
 
+        public static IEnumerable<object> GetJsonObjectFromTabular(Stream fileContent, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
+        {
+            var strJson = GetJsonStringFromTabular(fileContent, skipRows, replaceFrom, replaceTo, headerColumns, onlySampleRow);
+
+            return JsonConvert.DeserializeObject<IEnumerable<object>>(strJson);
+        }
+
         public static string GetClassModelFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null)
         {
             string result = null;

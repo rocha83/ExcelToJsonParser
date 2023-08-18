@@ -15,10 +15,10 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>A simple excel-to-json document converter</Description>
     <PackageIconUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/json-file.png</PackageIconUrl>
-    <Version>1.0.6.3</Version>
+    <Version>1.0.6.4</Version>
     <PackageId>ExcelToJsonParser</PackageId>
     <AssemblyName>Rochas.ExcelToJsonParser</AssemblyName>
-    <AssemblyVersion>1.0.6.3</AssemblyVersion>
+    <AssemblyVersion>1.0.6.4</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
