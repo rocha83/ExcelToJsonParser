@@ -10,7 +10,7 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>Git</RepositoryType>
     <RepositoryUrl>https://github.com/rocha83/ExcelToJsonParser</RepositoryUrl>
-    <PackageTags>excel xlsx xls xlsb csv json c# class object</PackageTags>
+    <PackageTags>excel spreadsheet xlsx xls json dictionary datatable c# class object generation</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>A simple excel-to-json document converter</Description>
