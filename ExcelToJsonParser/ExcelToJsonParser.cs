@@ -7,7 +7,6 @@ using System.Text;
 using Newtonsoft.Json;
 using ExcelDataReader; // Used to auto parse sheet data to datareader
 using ClosedXML.Excel; // Used to access named cells
-using Spire.Xls; // Used only to open excel binary files
 using NJsonSchema.CodeGeneration.CSharp; // Used to generate C# class model code
 
 namespace Rochas.ExcelToJson
@@ -265,19 +264,7 @@ namespace Rochas.ExcelToJson
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new Exception("File name not informed");
 
-            var isBinaryFile = Path.GetExtension(fileName).ToLower().Equals(".xlsb");
-            if (!isBinaryFile)
-                return File.Open(fileName, FileMode.Open, FileAccess.Read);
-            else
-            {
-                var result = new MemoryStream();
-
-                Workbook workbook = new Workbook();
-                workbook.LoadFromFile(fileName);
-                workbook.SaveToStream(result, FileFormat.Version2010);
-
-                return result;
-            }
+            return File.Open(fileName, FileMode.Open, FileAccess.Read);
         }
 
         private static string[] GetHeaderColumns(IExcelDataReader reader)
