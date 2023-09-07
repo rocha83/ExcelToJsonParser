@@ -24,3 +24,5 @@
 /.vs/Rochas.ExcelToJsonParser/v16
 /.vs/Rochas.ExcelToJsonParser/v17
 /ExcelToJsonParser.Console/bin/Release/net6.0
+/.vs
+/ExcelToJsonParser.Console/bin/Debug/net6.0

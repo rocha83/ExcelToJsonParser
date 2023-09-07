@@ -15,22 +15,22 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>A simple excel-to-json document converter</Description>
     <PackageIconUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/json-file.png</PackageIconUrl>
-    <Version>1.0.6.4</Version>
+    <Version>1.0.6.5</Version>
     <PackageId>ExcelToJsonParser</PackageId>
     <AssemblyName>Rochas.ExcelToJsonParser</AssemblyName>
     <AssemblyVersion>1.0.6.4</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.97.0" />
+    <PackageReference Include="ClosedXML" Version="0.102.1" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
     <PackageReference Include="FreeSpire.XLS" Version="12.7.0" />
-    <PackageReference Include="NJsonSchema" Version="10.8.0" />
-    <PackageReference Include="NJsonSchema.CodeGeneration" Version="10.8.0" />
-    <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="10.8.0" />
+    <PackageReference Include="NJsonSchema" Version="10.9.0" />
+    <PackageReference Include="NJsonSchema.CodeGeneration" Version="10.9.0" />
+    <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="10.9.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="7.0.0" />
-    <PackageReference Include="System.Text.Json" Version="7.0.1" />
+    <PackageReference Include="System.Text.Json" Version="7.0.3" />
   </ItemGroup>
 
 </Project>

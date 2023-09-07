@@ -136,6 +136,7 @@ namespace Rochas.ExcelToJson
         public static DataTable GetDataTable(Stream fileContent, int skipRows = 0, bool useHeader = true)
         {
             DataTable result = null;
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             if (fileContent != null)
             {
