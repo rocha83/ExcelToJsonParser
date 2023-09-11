@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>Rochas.ExcelToJson</RootNamespace>
+    <RootNamespace>Rochas.ExcelToJsonParser</RootNamespace>
     <Authors>Renato Rocha</Authors>
     <Company />
     <Product>Rochas.ExcelToJsonParser</Product>
@@ -14,11 +14,10 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>A simple excel-to-json document converter</Description>
-    <PackageIconUrl>https://raw.githubusercontent.com/rocha83/ExcelToJsonParser/master/json-file.png</PackageIconUrl>
-    <Version>1.0.6.5</Version>
-    <PackageId>ExcelToJsonParser</PackageId>
+    <Version>1.0.6.6</Version>
+    <PackageId>Rochas.ExcelToJsonParser</PackageId>
     <AssemblyName>Rochas.ExcelToJsonParser</AssemblyName>
-    <AssemblyVersion>1.0.6.4</AssemblyVersion>
+    <PackageIcon>json-file.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +29,13 @@
     <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" Version="10.9.0" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="7.0.0" />
     <PackageReference Include="System.Text.Json" Version="7.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="json-file.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

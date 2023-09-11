@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExcelToJsonParser\ExcelToJsonParser.csproj" />
+    <ProjectReference Include="..\Rochas.ExcelToJsonParser\Rochas.ExcelToJsonParser.csproj" />
   </ItemGroup>
 
   <ItemGroup>
