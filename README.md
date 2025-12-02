@@ -42,7 +42,7 @@ DataTable data = parser.GetDataTable("arquivo.xlsx", skipRows: 1, useHeader: tru
 
 ---
 
-Gerar classe C# a partir dos nomes das colunas
+Classes C# a partir dos nomes das colunas
 
 ```csharp
 string classFile = parser.GetClassModelFromTabular("arquivo.xlsx");
@@ -77,7 +77,7 @@ var dict = parser.GetDictionary("arquivo.xlsx", "FichaCliente");
 
 ---
 
-Gerar classe C#
+Classe C#
 
 ```csharp
 string classModel = parser.GetClassModelFromForm("arquivo.xlsx", "FichaCliente");
@@ -87,16 +87,16 @@ string classModel = parser.GetClassModelFromForm("arquivo.xlsx", "FichaCliente")
 
 ## 🎯 Parâmetros Importantes
 
-**skipRows**
+**skipRows**:
 Ignora linhas iniciais.
 
-**replaceFrom / replaceTo**
+**replaceFrom / replaceTo**:
 Permite substituir partes do nome das colunas.
 
-**headerColumns**
+**headerColumns**:
 Permite informar manualmente o cabeçalho do Excel.
 
-**onlySampleRow**
+**onlySampleRow**:
 Quando true, lê apenas 1 linha.
 Usado internamente para geração de modelos C#.
 
