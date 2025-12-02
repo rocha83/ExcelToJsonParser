@@ -12,14 +12,16 @@ namespace Rochas.ExcelToJson
         {
             try
             {
+                using var excelParser = new ExcelToJsonParser();
+
                 var skipLines = 0;
-                var excelContent = ExcelToJsonParser.GetJsonStringFromTabular("Samples\\TabularSample.xlsx", skipLines, _replaceFrom, _replaceTo);
+                var excelContent = excelParser.GetJsonStringFromTabular("Samples\\TabularSample.xlsx", skipLines, _replaceFrom, _replaceTo);
                 Console.Clear();
                 Console.WriteLine("Tabular Sheet Result Sample :");
                 Console.WriteLine(excelContent);
                 Console.Read();
 
-                excelContent = ExcelToJsonParser.GetJsonStringFromForm("Samples\\FormSample.xlsx", "PlanTeste1", _replaceFrom, _replaceTo);
+                excelContent = excelParser.GetJsonStringFromForm("Samples\\FormSample.xlsx", "PlanTeste1", _replaceFrom, _replaceTo);
                 Console.Clear();
                 Console.WriteLine("Form Sheet Result Sample :");
                 Console.WriteLine(excelContent);
