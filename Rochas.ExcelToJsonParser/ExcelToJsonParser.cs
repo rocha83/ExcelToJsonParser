@@ -5,25 +5,27 @@ using System.Linq;
 using System.IO;
 using System.Text;
 using Newtonsoft.Json;
-using ExcelDataReader; // Used to auto parse sheet data to datareader
-using ClosedXML.Excel; // Used to access named cells
-using NJsonSchema.CodeGeneration.CSharp; // Used to generate C# class model code
+using ExcelDataReader;
+using ClosedXML.Excel;
+using NJsonSchema.CodeGeneration.CSharp;
+
+using Rochas.ExcelToJson.Helpers;
 
 namespace Rochas.ExcelToJson
 {
-    public static class ExcelToJsonParser
+    public class ExcelToJsonParser : IDisposable
     {
         #region Tabular Sheet Parser Public Methods
 
-        public static string GetJsonStringFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
+        public string GetJsonStringFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
         {
-            using (var fileContent = GetFileStream(fileName))
+            using (var fileContent = TabularSheetReader.GetFileStream(fileName))
             {
-                return GetJsonStringFromTabular(fileContent, skipRows, replaceFrom, replaceTo, headerColumns);
+                return GetJsonStringFromTabular(fileContent, skipRows, replaceFrom, replaceTo, headerColumns, onlySampleRow);
             }
         }
 
-        public static string GetJsonStringFromTabular(Stream fileContent, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
+        public string GetJsonStringFromTabular(Stream fileContent, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
         {
             var counter = 0;
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -34,6 +36,7 @@ namespace Rochas.ExcelToJson
                 {
                     FallbackEncoding = Encoding.GetEncoding(1252)
                 };
+
                 using (var reader = ExcelReaderFactory.CreateReader(fileContent, readerConfig))
                 {
                     using (var writer = new JsonTextWriter(result))
@@ -50,20 +53,20 @@ namespace Rochas.ExcelToJson
                         reader.Read();
 
                         if (headerColumns == null)
-                            headerColumns = GetHeaderColumns(reader);
+                            headerColumns = TabularSheetReader.GetHeaderColumns(reader);
                         else
                         {
                             if (headerColumns.Length < reader.FieldCount)
                                 throw new Exception("Invalid column amount");
                         }
 
-                        ApplyColumnNamesReplace(headerColumns, replaceFrom, replaceTo);
+                        TabularSheetConversor.ApplyColumnNamesReplace(headerColumns, replaceFrom, replaceTo);
 
                         do
                         {
                             while (reader.Read() && (!onlySampleRow || (onlySampleRow && counter < 1)))
                             {
-                                WriteItemJsonBodyFromReader(reader, writer, headerColumns);
+                                JsonWriterHelper.WriteItemJsonBodyFromReader(reader, writer, headerColumns);
                                 counter += 1;
                             }
 
@@ -77,24 +80,23 @@ namespace Rochas.ExcelToJson
             }
         }
 
-        public static IEnumerable<object> GetJsonObjectFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
+        public IEnumerable<object> GetJsonObjectFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
         {
             var strJson = GetJsonStringFromTabular(fileName, skipRows, replaceFrom, replaceTo, headerColumns, onlySampleRow);
-
             return JsonConvert.DeserializeObject<IEnumerable<object>>(strJson);
         }
 
-        public static IEnumerable<object> GetJsonObjectFromTabular(Stream fileContent, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
+        public IEnumerable<object> GetJsonObjectFromTabular(Stream fileContent, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null, bool onlySampleRow = false)
         {
             var strJson = GetJsonStringFromTabular(fileContent, skipRows, replaceFrom, replaceTo, headerColumns, onlySampleRow);
-
             return JsonConvert.DeserializeObject<IEnumerable<object>>(strJson);
         }
 
-        public static string GetClassModelFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null)
+        public string GetClassModelFromTabular(string fileName, int skipRows = 0, string[] replaceFrom = null, string[] replaceTo = null, string[] headerColumns = null)
         {
             string result = null;
             var jsonContent = GetJsonStringFromTabular(fileName, skipRows, replaceFrom, replaceTo, headerColumns, true);
+
             if (!string.IsNullOrWhiteSpace(jsonContent))
             {
                 var schema = NJsonSchema.JsonSchema.FromSampleJson(jsonContent);
@@ -105,8 +107,8 @@ namespace Rochas.ExcelToJson
                     GenerateDefaultValues = false,
                     GenerateJsonMethods = true
                 };
-                var generator = new CSharpGenerator(schema, genOptions);
 
+                var generator = new CSharpGenerator(schema, genOptions);
                 var className = fileName.Replace(".xlsx", string.Empty).Replace(".xls", string.Empty);
 
                 result = generator.GenerateFile(className);
@@ -117,15 +119,15 @@ namespace Rochas.ExcelToJson
 
         #region DataTable results support
 
-        public static DataTable GetDataTable(string fileName, int skipRows = 0, bool useHeader = true)
+        public DataTable GetDataTable(string fileName, int skipRows = 0, bool useHeader = true)
         {
             DataTable result = null;
 
             if (!string.IsNullOrWhiteSpace(fileName))
             {
-                using (var fileContent = GetFileStream(fileName))
+                using (var fileContent = TabularSheetReader.GetFileStream(fileName))
                 {
-                    result = GetDataTable(fileContent, skipRows, useHeader);
+                    result = TabularSheetReader.GetDataTable(fileContent, skipRows, useHeader);
                 }
             }
 
@@ -134,31 +136,7 @@ namespace Rochas.ExcelToJson
 
         public static DataTable GetDataTable(Stream fileContent, int skipRows = 0, bool useHeader = true)
         {
-            DataTable result = null;
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-            if (fileContent != null)
-            {
-                var reader = ExcelReaderFactory.CreateReader(fileContent);
-
-                var config = new ExcelDataSetConfiguration()
-                {
-                    ConfigureDataTable = _ => new ExcelDataTableConfiguration
-                    {
-                        UseHeaderRow = useHeader
-                    }
-                };
-
-                while (skipRows > 0)
-                {
-                    reader.Read();
-                    skipRows--;
-                }
-
-                result = reader.AsDataSet(config).Tables[0];
-            }
-
-            return result;
+            return TabularSheetReader.GetDataTable(fileContent, skipRows, useHeader);
         }
 
         #endregion
@@ -167,15 +145,15 @@ namespace Rochas.ExcelToJson
 
         #region Form Sheet Parser Public Methods
 
-        public static string GetJsonStringFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public string GetJsonStringFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new Exception("File name not informed");
 
             using (var engine = new XLWorkbook(fileName))
             {
-                var parsedData = ParseFormSheet(engine, sheetName, fieldNames);
-                return WriteJsonBodyFromNamedFields(parsedData);
+                var parsedData = FormSheetHelper.ParseFormSheet(engine, sheetName, fieldNames);
+                return JsonWriterHelper.WriteJsonBodyFromNamedFields(parsedData);
             }
         }
 
@@ -186,29 +164,28 @@ namespace Rochas.ExcelToJson
 
             using (var engine = new XLWorkbook(fileContent))
             {
-                var parsedData = ParseFormSheet(engine, sheetName, fieldNames);
-                return WriteJsonBodyFromNamedFields(parsedData);
+                var parsedData = FormSheetHelper.ParseFormSheet(engine, sheetName, fieldNames);
+                return JsonWriterHelper.WriteJsonBodyFromNamedFields(parsedData);
             }
         }
 
-        public static object GetJsonObjectFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public object GetJsonObjectFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             var strJson = GetJsonStringFromForm(fileName, sheetName, replaceTo, fieldNames);
-
             return JsonConvert.DeserializeObject(strJson);
         }
 
-        public static object GetJsonObjectFromForm(Stream fileContent, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public object GetJsonObjectFromForm(Stream fileContent, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             var strJson = GetJsonStringFromForm(fileContent, sheetName, replaceTo, fieldNames);
-
             return JsonConvert.DeserializeObject(strJson);
         }
 
-        public static string GetClassModelFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public string GetClassModelFromForm(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             string result = null;
             var jsonContent = GetJsonStringFromForm(fileName, sheetName, replaceFrom, replaceTo, fieldNames);
+
             if (!string.IsNullOrWhiteSpace(jsonContent))
             {
                 var schema = NJsonSchema.JsonSchema.FromSampleJson(jsonContent);
@@ -231,25 +208,25 @@ namespace Rochas.ExcelToJson
 
         #region Dictionary results support
 
-        public static IDictionary<string, object> GetDictionary(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public IDictionary<string, object> GetDictionary(string fileName, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             if (string.IsNullOrWhiteSpace(fileName))
                 throw new Exception("File name not informed");
 
             using (var engine = new XLWorkbook(fileName))
             {
-                return ParseFormSheet(engine, sheetName, fieldNames);
+                return FormSheetHelper.ParseFormSheet(engine, sheetName, fieldNames);
             }
         }
 
-        public static IDictionary<string, object> GetDictionary(Stream fileContent, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
+        public IDictionary<string, object> GetDictionary(Stream fileContent, string sheetName, string[] replaceFrom = null, string[] replaceTo = null, string[] fieldNames = null)
         {
             if (fileContent == null)
                 throw new Exception("File content not informed");
 
             using (var engine = new XLWorkbook(fileContent))
             {
-                return ParseFormSheet(engine, sheetName, fieldNames);
+                return FormSheetHelper.ParseFormSheet(engine, sheetName, fieldNames);
             }
         }
 
@@ -257,139 +234,9 @@ namespace Rochas.ExcelToJson
 
         #endregion
 
-        #region Tabular Sheet Parser Helper Methods
-
-        private static Stream GetFileStream(string fileName)
+        public void Dispose()
         {
-            if (string.IsNullOrWhiteSpace(fileName))
-                throw new Exception("File name not informed");
-
-            return File.Open(fileName, FileMode.Open, FileAccess.Read);
+            GC.SuppressFinalize(this);
         }
-
-        private static string[] GetHeaderColumns(IExcelDataReader reader)
-        {
-            string[] result = null;
-
-            if (reader != null)
-            {
-                result = new string[reader.FieldCount];
-
-                for (var count = 0; count < reader.FieldCount; count++)
-                    result[count] = reader[count]?.ToString().Trim();
-            }
-
-            return result;
-        }
-
-        private static void ApplyColumnNamesReplace(string[] columnNames, string[] readFrom, string[] replaceTo)
-        {
-            if ((readFrom != null) && (replaceTo != null))
-            {
-                if (readFrom.Length != replaceTo.Length)
-                    throw new ArgumentOutOfRangeException("Invalid replace values amount");
-
-                for (var nameCount = 0; nameCount < columnNames.Length; nameCount++)
-                {
-                    for (var chrCount = 0; chrCount < readFrom.Length; chrCount++)
-                        columnNames[nameCount] = columnNames[nameCount].Replace(readFrom[chrCount], replaceTo[chrCount]).Replace(" ", "_");
-                }
-            }
-        }
-
-        private static void WriteItemJsonBodyFromReader(IExcelDataReader reader, JsonWriter writer, string[] headerColumns)
-        {
-            writer.WriteStartObject();
-
-            var colCount = 0;
-            foreach (var col in headerColumns)
-            {
-                var colValue = reader.GetValue(colCount);
-                writer.WritePropertyName(col);
-                writer.WriteValue(colValue);
-                colCount += 1;
-            }
-
-            writer.WriteEndObject();
-        }
-
-        #endregion
-
-        #region Form Sheet Parser Helper Methods
-
-        private static string[] GetNamedFormFields(XLWorkbook engine)
-        {
-            string[] result = null;
-
-            if (engine != null)
-                return engine.NamedRanges.Select(nmf => nmf.Name).ToArray();
-
-            return result;
-        }
-
-        private static IDictionary<string, object> GetNamedFieldValues(XLWorkbook engine, string sheetName, string[] fieldNames)
-        {
-            IDictionary<string, object> result = null;
-
-            result = new Dictionary<string, object>();
-            foreach (var field in fieldNames)
-            {
-                var cell = engine.Cell(field);
-
-                if (cell != null)
-                    if (cell.Worksheet.Name.ToLower().Equals(sheetName.ToLower()))
-                    {
-                        try
-                        {
-                            result.Add(field, cell.Value);
-                        }
-                        catch (Exception ex)
-                        {
-                            if (ex.GetType() == typeof(InvalidOperationException))
-                                throw new InvalidOperationException($"Invalid cell value at {field}.");
-                        }
-                    }
-            }
-
-            return result;
-        }
-
-        private static string WriteJsonBodyFromNamedFields(IDictionary<string, object> fields)
-        {
-            using (var result = new StringWriter())
-            {
-                using (var writer = new JsonTextWriter(result))
-                {
-                    writer.Formatting = Formatting.Indented;
-
-                    if ((fields != null) && (writer != null))
-                    {
-                        writer.WriteStartObject();
-
-                        foreach (var field in fields)
-                        {
-                            writer.WritePropertyName(field.Key);
-
-                            if (field.Value != null)
-                                writer.WriteValue(field.Value);
-                        }
-
-                        writer.WriteEndObject();
-                    }
-
-                    return result.ToString();
-                }
-            }
-        }
-
-        private static IDictionary<string, object> ParseFormSheet(XLWorkbook engine, string sheetName, string[] fieldNames = null)
-        {
-            if (fieldNames == null)
-                fieldNames = GetNamedFormFields(engine);
-
-            return GetNamedFieldValues(engine, sheetName, fieldNames);
-        }
-
-        #endregion
     }
 }
