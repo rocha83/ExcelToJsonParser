@@ -4,3 +4,6 @@
 **/packages/
 .vs/
 *.nupkg
+coverage-detail/
+coverage-report/
+TestResults/

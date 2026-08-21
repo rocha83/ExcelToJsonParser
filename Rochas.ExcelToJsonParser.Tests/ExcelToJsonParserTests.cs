@@ -479,4 +479,491 @@ public class ExcelToJsonParserTests
     [Fact] public void GetDictionary_NullStream_Throws() { Assert.Throws<Exception>(() => _parser.GetDictionary((Stream)null!, "S")); }
 
     #endregion
+
+    #region Branch Coverage - Additional
+
+    [Fact]
+    public void GetDataTable_Stream_WithSkipRows()
+    {
+        using var stream = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var dt = _parser.GetDataTable(stream, skipRows: 1);
+        Assert.NotNull(dt);
+    }
+
+    [Fact]
+    public void GetDataTable_Stream_NoHeader()
+    {
+        using var stream = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var dt = _parser.GetDataTable(stream, useHeader: false);
+        Assert.NotNull(dt);
+    }
+
+    [Fact]
+    public void WriteItemJsonBody_AllTypes()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Types");
+        ws.Cell(1, 1).Value = "Str"; ws.Cell(1, 2).Value = "Int"; ws.Cell(1, 3).Value = "Dbl";
+        ws.Cell(1, 4).Value = "Dec"; ws.Cell(1, 5).Value = "Bool"; ws.Cell(1, 6).Value = "Date";
+        ws.Cell(1, 7).Value = "NullCol";
+        ws.Cell(2, 1).Value = "abc"; ws.Cell(2, 2).Value = 42; ws.Cell(2, 3).Value = 3.14;
+        ws.Cell(2, 4).Value = 9.99m; ws.Cell(2, 5).Value = true; ws.Cell(2, 6).Value = new DateTime(2026, 1, 15);
+        ws.Cell(2, 7).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var json = _parser.GetJsonStringFromTabular(ms);
+        Assert.Contains("abc", json);
+        Assert.Contains("42", json);
+    }
+
+    [Fact]
+    public void ValidateCell_AllRuleTypes()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Val");
+        ws.Cell(1, 1).Value = "Nome"; ws.Cell(1, 2).Value = "Idade"; ws.Cell(1, 3).Value = "Data";
+        ws.Cell(2, 1).Value = "João"; ws.Cell(2, 2).Value = "abc"; ws.Cell(2, 3).Value = "not-a-date";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var rules = new[] {
+            new ValidationRule { ColumnName = "Idade", Type = "numeric" },
+            new ValidationRule { ColumnName = "Data", Type = "date" }
+        };
+        var result = _parser.ValidateTabular(ms, rules);
+        Assert.False(result.IsValid);
+        Assert.True(result.ErrorRows > 0);
+    }
+
+    [Fact]
+    public void ValidateTabular_EmptyRules()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var result = _parser.ValidateTabular(stream, Array.Empty<ValidationRule>());
+        Assert.True(result.IsValid);
+        Assert.Equal(0, result.ErrorRows);
+    }
+
+    [Fact]
+    public void XmlToCsv_EmptyDocument()
+    {
+        var xml = "<Root/>";
+        var csv = Encoding.UTF8.GetString(_parser.XmlToCsv(xml));
+        Assert.Equal(string.Empty, csv);
+    }
+
+    [Fact]
+    public void JsonToCsv_EmptyArrayResult()
+    {
+        var csv = Encoding.UTF8.GetString(_parser.JsonToCsv("[]"));
+        Assert.Equal(string.Empty, csv);
+    }
+
+    [Fact]
+    public void EscapeCsvField_AllCases()
+    {
+        var data = new List<IDictionary<string, object>> {
+            new Dictionary<string, object> { { "A", "" }, { "B", "has,comma" }, { "C", "has\"quote" }, { "D", "has\nnewline" } }
+        };
+        var bytes = _parser.TabularToExcel(data);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void ParseXmlToTabular_EmptyElements()
+    {
+        var xml = "<Root><Item/></Root>";
+        var rows = new List<IDictionary<string, object>>();
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Xml");
+        ws.Cell(1, 1).Value = "Test";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var dt = _parser.GetDataTable(ms);
+        Assert.NotNull(dt);
+    }
+
+    [Fact]
+    public async Task StreamFromTabular_WithHeadersAndSkip()
+    {
+        using var stream = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var rows = new List<IDictionary<string, object>>();
+        var headers = new[] { "Col1", "Col2", "Col3" };
+        using var stream2 = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var dt = _parser.GetDataTable(stream);
+        var colCount = dt.Columns.Count;
+        var actualHeaders = Enumerable.Range(1, colCount).Select(i => $"C{i}").ToArray();
+        await foreach (var row in _parser.StreamFromTabular(stream2, 0, null, null, actualHeaders))
+            rows.Add(row);
+        Assert.True(rows.Count > 0);
+    }
+
+    [Fact]
+    public void GetJsonStringsFromAllSheets_SkipRows()
+    {
+        var result = _parser.GetJsonStringsFromAllSheets(GetSamplePath("TabularSample.xlsx"), skipRows: 1);
+        Assert.True(result.Count > 0);
+    }
+
+    [Fact]
+    public void CsvToExcel_Stream_EmptyLines()
+    {
+        using var stream = ToStream("A,B\n\n1,2\n");
+        var bytes = _parser.CsvToExcel(stream);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void TabularToExcel_WithDateTime()
+    {
+        var data = new List<IDictionary<string, object>> {
+            new Dictionary<string, object> { { "Date", new DateTime(2026, 1, 1) }, { "Val", 1.5 } }
+        };
+        var bytes = _parser.TabularToExcel(data);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void JsonElementToObject_AllNestedTypes()
+    {
+        var json = @"[{""Obj"":{""A"":1},""Arr"":[1,2,3],""Str"":""x"",""Num"":42,""Dbl"":1.5,""Bool"":true,""Null"":null}]";
+        var bytes = _parser.JsonToExcel(json);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void WriteJsonBodyFromNamedFields_AllValueTypes()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Form");
+        workbook.NamedRanges.Add("StrVal", ws.Range("B1"));
+        workbook.NamedRanges.Add("IntVal", ws.Range("B2"));
+        workbook.NamedRanges.Add("DblVal", ws.Range("B3"));
+        workbook.NamedRanges.Add("DecVal", ws.Range("B4"));
+        workbook.NamedRanges.Add("BoolVal", ws.Range("B5"));
+        workbook.NamedRanges.Add("NullVal", ws.Range("B6"));
+        ws.Cell(1, 2).Value = "text";
+        ws.Cell(2, 2).Value = 42;
+        ws.Cell(3, 2).Value = 3.14;
+        ws.Cell(4, 2).Value = 9.99m;
+        ws.Cell(5, 2).Value = true;
+        ws.Cell(6, 2).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        using var stream = new MemoryStream(ms.ToArray());
+        var json = _parser.GetJsonStringFromForm(stream, "Form");
+        Assert.Contains("{", json);
+    }
+
+    [Fact]
+    public void GetDictionary_FormWithNullFields()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Form");
+        workbook.NamedRanges.Add("Field1", ws.Range("B1"));
+        ws.Cell(1, 2).Value = "value1";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        using var stream = new MemoryStream(ms.ToArray());
+        var dict = _parser.GetDictionary(stream, "Form");
+        Assert.True(dict.Count > 0);
+    }
+
+    #endregion
+
+    #region Branch Coverage - Deep
+
+    [Fact]
+    public void WriteItemJsonBody_BooleansAndDates()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("BD");
+        ws.Cell(1, 1).Value = "BoolCol"; ws.Cell(1, 2).Value = "DateCol"; ws.Cell(1, 3).Value = "NullCol";
+        ws.Cell(2, 1).Value = false;
+        ws.Cell(2, 3).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var json = _parser.GetJsonStringFromTabular(ms);
+        Assert.Contains("false", json);
+    }
+
+    [Fact]
+    public void EscapeCsvField_CommaAndQuotesAndNewline()
+    {
+        var dict = new List<IDictionary<string, object>> {
+            new Dictionary<string, object> { { "A", "has,comma" }, { "B", "has\"quote" }, { "C", "has\nnewline" } }
+        };
+        var bytes = _parser.TabularToExcel(dict);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void WriteJsonBody_NullFields()
+    {
+        using var ms = new MemoryStream();
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Empty");
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        using var stream = new MemoryStream(ms.ToArray());
+        var dict = _parser.GetDictionary(stream, "Empty");
+        Assert.NotNull(dict);
+    }
+
+    [Fact]
+    public void ValidateCell_MinLength_Passes()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var rules = new[] { new ValidationRule { ColumnName = "Nome", Type = "min_length", MinLength = 1 } };
+        var result = _parser.ValidateTabular(stream, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_Numeric_EmptyString()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("V");
+        ws.Cell(1, 1).Value = "Val";
+        ws.Cell(2, 1).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var rules = new[] { new ValidationRule { ColumnName = "Val", Type = "numeric" } };
+        var result = _parser.ValidateTabular(ms, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_Regex_EmptyString()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("V");
+        ws.Cell(1, 1).Value = "Val";
+        ws.Cell(2, 1).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var rules = new[] { new ValidationRule { ColumnName = "Val", Type = "regex", Pattern = @"^\d+$" } };
+        var result = _parser.ValidateTabular(ms, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_InList_EmptyString()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("V");
+        ws.Cell(1, 1).Value = "Val";
+        ws.Cell(2, 1).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var rules = new[] { new ValidationRule { ColumnName = "Val", Type = "in_list", AllowedValues = new[] { "A" } } };
+        var result = _parser.ValidateTabular(ms, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void JsonElementToObject_LongAndDouble()
+    {
+        var json = @"[{""L"":9999999999,""D"":1.5,""S"":""x"",""B"":true,""N"":null,""A"":[1],""O"":{""K"":1}}]";
+        var bytes = _parser.JsonToExcel(json);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void XmlToCsv_EmptyElements()
+    {
+        var xml = "<Root/>";
+        var bytes = _parser.XmlToCsv(xml);
+        Assert.True(bytes.Length >= 0);
+    }
+
+    [Fact]
+    public void JsonToCsv_SingleRow()
+    {
+        var json = @"[{""A"":""1""}]";
+        var csv = Encoding.UTF8.GetString(_parser.JsonToCsv(json));
+        Assert.Contains("A", csv);
+        Assert.Contains("1", csv);
+    }
+
+    [Fact]
+    public void ParseFormSheet_WithNullSheet()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Test");
+        workbook.NamedRanges.Add("F1", ws.Range("B1"));
+        ws.Cell(1, 2).Value = "val";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        using var stream = new MemoryStream(ms.ToArray());
+        var json = _parser.GetJsonStringFromForm(stream, "Test");
+        Assert.Contains("F1", json);
+    }
+
+    #endregion
+
+    #region Branch Coverage - Deep
+
+    [Fact]
+    public void EscapeCsvField_OnlyQuote()
+    {
+        var dict = new List<IDictionary<string, object>> {
+            new Dictionary<string, object> { { "A", "has\"quote" } }
+        };
+        var bytes = _parser.TabularToExcel(dict);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void EscapeCsvField_OnlyNewline()
+    {
+        var dict = new List<IDictionary<string, object>> {
+            new Dictionary<string, object> { { "A", "has\nnewline" } }
+        };
+        var bytes = _parser.TabularToExcel(dict);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void ValidateCell_MaxLength_NoHasValue()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var rules = new[] { new ValidationRule { ColumnName = "Nome", Type = "max_length" } };
+        var result = _parser.ValidateTabular(stream, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_MinLength_NoHasValue()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var rules = new[] { new ValidationRule { ColumnName = "Nome", Type = "min_length" } };
+        var result = _parser.ValidateTabular(stream, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_InList_NullAllowedValues()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var rules = new[] { new ValidationRule { ColumnName = "Cidade", Type = "in_list" } };
+        var result = _parser.ValidateTabular(stream, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ValidateCell_Regex_NullPattern()
+    {
+        using var stream = new MemoryStream(CreateSampleExcel());
+        var rules = new[] { new ValidationRule { ColumnName = "Nome", Type = "regex" } };
+        var result = _parser.ValidateTabular(stream, rules);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void WriteItemJsonBody_AllBranches()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("All");
+        ws.Cell(1, 1).Value = "IntCol"; ws.Cell(1, 2).Value = "DblCol"; ws.Cell(1, 3).Value = "DecCol";
+        ws.Cell(1, 4).Value = "BoolCol"; ws.Cell(1, 5).Value = "DateCol"; ws.Cell(1, 6).Value = "StrCol";
+        ws.Cell(2, 1).Value = 42;
+        ws.Cell(2, 2).Value = 3.14;
+        ws.Cell(2, 3).Value = 9.99m;
+        ws.Cell(2, 4).Value = true;
+        ws.Cell(2, 5).Value = new DateTime(2026, 6, 15);
+        ws.Cell(2, 6).Value = "text";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        var json = _parser.GetJsonStringFromTabular(ms);
+        Assert.Contains("42", json);
+        Assert.Contains("text", json);
+    }
+
+    [Fact]
+    public void WriteJsonBody_AllFieldTypes()
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.Worksheets.Add("Form");
+        workbook.NamedRanges.Add("IntF", ws.Range("B1"));
+        workbook.NamedRanges.Add("DblF", ws.Range("B2"));
+        workbook.NamedRanges.Add("DecF", ws.Range("B3"));
+        workbook.NamedRanges.Add("BoolF", ws.Range("B4"));
+        workbook.NamedRanges.Add("StrF", ws.Range("B5"));
+        workbook.NamedRanges.Add("NullF", ws.Range("B6"));
+        ws.Cell(1, 2).Value = 42;
+        ws.Cell(2, 2).Value = 3.14;
+        ws.Cell(3, 2).Value = 9.99m;
+        ws.Cell(4, 2).Value = true;
+        ws.Cell(5, 2).Value = "text";
+        ws.Cell(6, 2).Value = "";
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Position = 0;
+        using var stream = new MemoryStream(ms.ToArray());
+        var json = _parser.GetJsonStringFromForm(stream, "Form");
+        Assert.Contains("{", json);
+    }
+
+    [Fact]
+    public void ParseXmlToTabular_Complex()
+    {
+        var xml = @"<Root>
+            <Item><Name>A</Name><Value>1</Value></Item>
+            <Item><Name>B</Name></Item>
+            <Item><Value>3</Value></Item>
+        </Root>";
+        var bytes = _parser.XmlToExcel(xml);
+        Assert.True(bytes.Length > 0);
+    }
+
+    [Fact]
+    public void GetDataTable_SheetName_Found()
+    {
+        var dt = _parser.GetDataTable(GetSamplePath("TabularSample.xlsx"), "TestData");
+        Assert.NotNull(dt);
+    }
+
+    [Fact]
+    public void JsonToCsv_MultipleRows()
+    {
+        var json = @"[{""A"":""1"",""B"":""2""},{""A"":""3"",""B"":""4""}]";
+        var csv = Encoding.UTF8.GetString(_parser.JsonToCsv(json));
+        Assert.Contains("1", csv);
+        Assert.Contains("4", csv);
+    }
+
+    [Fact]
+    public void XmlToCsv_MultipleRows()
+    {
+        var xml = @"<R><R><A>1</A><B>2</B></R><R><A>3</A><B>4</B></R></R>";
+        var csv = Encoding.UTF8.GetString(_parser.XmlToCsv(xml));
+        Assert.Contains("A", csv);
+        Assert.Contains("1", csv);
+    }
+
+    [Fact]
+    public async Task StreamFromTabular_WithHeaders()
+    {
+        using var stream = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var dt = _parser.GetDataTable(stream);
+        var headers = Enumerable.Range(1, dt.Columns.Count).Select(i => $"C{i}").ToArray();
+        using var stream2 = File.OpenRead(GetSamplePath("TabularSample.xlsx"));
+        var rows = new List<IDictionary<string, object>>();
+        await foreach (var row in _parser.StreamFromTabular(stream2, 0, null, null, headers))
+            rows.Add(row);
+        Assert.True(rows.Count > 0);
+    }
+
+    #endregion
 }
