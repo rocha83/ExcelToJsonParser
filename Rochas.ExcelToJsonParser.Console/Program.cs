@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Threading;
+using System.IO;
+using System.Text;
 
 namespace Rochas.ExcelToJson
 {
@@ -12,25 +13,38 @@ namespace Rochas.ExcelToJson
         {
             try
             {
-                using var excelParser = new ExcelToJsonParser();
+                using var parser = new ExcelToJsonParser();
 
                 var skipLines = 0;
-                var excelContent = excelParser.GetJsonStringFromTabular("Samples\\TabularSample.xlsx", skipLines, _replaceFrom, _replaceTo);
+                var excelContent = parser.GetJsonStringFromTabular("Samples\\TabularSample.xlsx", skipLines, _replaceFrom, _replaceTo);
                 Console.Clear();
                 Console.WriteLine("Tabular Sheet Result Sample :");
                 Console.WriteLine(excelContent);
                 Console.Read();
 
-                excelContent = excelParser.GetJsonStringFromForm("Samples\\FormSample.xlsx", "PlanTeste1", _replaceFrom, _replaceTo);
+                excelContent = parser.GetJsonStringFromForm("Samples\\FormSample.xlsx", "PlanTeste1", _replaceFrom, _replaceTo);
                 Console.Clear();
                 Console.WriteLine("Form Sheet Result Sample :");
                 Console.WriteLine(excelContent);
                 Console.Read();
+
+                Console.Clear();
+                Console.WriteLine("=== Reverse Flow: JSON -> Excel ===");
+                var excelBytes = parser.JsonToExcel(excelContent, "FromJson");
+                File.WriteAllBytes("Output_FromJson.xlsx", excelBytes);
+                Console.WriteLine("Done! Output: Output_FromJson.xlsx");
+                Console.Read();
+
+                Console.Clear();
+                Console.WriteLine("=== Reverse Flow: JSON -> CSV ===");
+                var csvBytes = parser.JsonToCsv(excelContent);
+                File.WriteAllBytes("Output_FromJson.csv", csvBytes);
+                Console.WriteLine("Done! Output: Output_FromJson.csv");
                 Console.Read();
             }
             catch(Exception ex)
             {
-                Console.WriteLine($"An error ocurred while parsing excel file content:{ex.Message}{Environment.NewLine}{ex.StackTrace}");
+                Console.WriteLine($"An error ocurred:{ex.Message}{Environment.NewLine}{ex.StackTrace}");
                 Console.Read();
             }
         }
