@@ -1,5 +1,9 @@
 ﻿# Rochas.ExcelToJsonParser
 
+[English](#english) | [Português](#português) | [Español](#español) | [Français](#français) | [Deutsch](#deutsch)
+
+---
+
 ## English
 
 # README - ExcelToJsonParser
