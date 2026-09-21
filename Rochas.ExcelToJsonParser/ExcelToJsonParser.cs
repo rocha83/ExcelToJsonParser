@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
@@ -344,7 +345,7 @@ namespace Rochas.ExcelToJson
                     case "lower_case": result = result.ToLower(); break;
                     case "title_case": if (!string.IsNullOrEmpty(result)) result = char.ToUpper(result[0]) + result.Substring(1).ToLower(); break;
                     case "replace": if (t.Params != null && t.Params.ContainsKey("from") && t.Params.ContainsKey("to")) result = result.Replace(t.Params["from"].ToString(), t.Params["to"].ToString()); break;
-                    case "to_decimal": if (decimal.TryParse(result, out var dv)) result = dv.ToString(System.Globalization.CultureInfo.InvariantCulture); break;
+                    case "to_decimal": if (decimal.TryParse(result, System.Globalization.NumberStyles.Number, new CultureInfo("pt-BR"), out var dv) || decimal.TryParse(result, System.Globalization.NumberStyles.Number, CultureInfo.InvariantCulture, out dv)) result = dv.ToString(CultureInfo.InvariantCulture); break;
                     case "to_int": if (int.TryParse(result, out var iv)) result = iv.ToString(); break;
                     case "to_date": if (!string.IsNullOrWhiteSpace(t.DateFormat) && DateTime.TryParseExact(result, t.DateFormat, null, System.Globalization.DateTimeStyles.None, out var dtv)) result = dtv.ToString("yyyy-MM-dd"); break;
                     case "to_boolean": if (t.TrueValues != null && t.TrueValues.Any(v => string.Equals(v, result, StringComparison.OrdinalIgnoreCase))) result = "true"; else if (t.FalseValues != null && t.FalseValues.Any(v => string.Equals(v, result, StringComparison.OrdinalIgnoreCase))) result = "false"; break;
