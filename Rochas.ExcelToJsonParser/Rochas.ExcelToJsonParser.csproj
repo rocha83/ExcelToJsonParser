@@ -11,7 +11,6 @@
     <PackageLicenseFile>GNUv2_License.txt</PackageLicenseFile>
     <PackageReleaseNotes>v1.6.4 - Bidirectional support: reverse flow JSON/CSV/XML -&gt; Excel (TabularToExcel, JsonToExcel, CsvToExcel, XmlToExcel, JsonToCsv) via ClosedXML, IDisposable support, test suite 100 -&gt; 140 tests (87.2% branch, 98.6% line coverage). v1.0.7 - Dependency packages update.</PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>json-file.png</PackageIcon>
     <RepositoryType>Git</RepositoryType>
     <RepositoryUrl>https://github.com/rocha83br/ExcelToJsonParser</RepositoryUrl>
@@ -37,7 +36,6 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
